@@ -5,11 +5,12 @@ const morgan = require('morgan');
 const helmet = require('helmet');//helps to hide sensetive header info
 // const cors = require('cors');
 
+
 //import environment variables.
 const { NODE_ENV } = require('./config');
 
 //import Routers
-const pokemonRouter = require('./Routers/pokedexRouter');
+const articlesRouter = require('./Routers/articlesRouter');
 
 //create express app
 const app = express();
@@ -30,13 +31,16 @@ app.use((req, res, next) => {
     next();
 });
 
-//apply Router middleware for base paths
-app.use('/api/pokemon', pokemonRouter);
 
-//This is just for testing:
-app.get('/', (req, res) => {
-    res.send('Hello, world!')
-    });
+
+//apply Router middleware for base paths
+app.use('/api/articles', articlesRouter);
+
+//xss example
+app.get('/xss', (req, res) => {
+  res.cookie('secretToken', '1234567890');
+  res.sendFile(__dirname + '/xss-example.html');
+});
 
 // catch-all endpoint if client makes request to non-existent endpoint
 app.use("*", function (req, res) {
