@@ -37,14 +37,14 @@ app.use((req, res, next) => {
 app.use('/api/articles', articlesRouter);
 
 //xss example
-app.get('/xss', (req, res) => {
-  res.cookie('secretToken', '1234567890');
-  res.sendFile(__dirname + '/xss-example.html');
-});
+// app.get('/xss', (req, res) => {
+//   res.cookie('secretToken', '1234567890');
+//   res.sendFile(__dirname + '/xss-example.html');
+// });
 
 // catch-all endpoint if client makes request to non-existent endpoint
 app.use("*", function (req, res) {
-    return res.status(404).json({ message: "🌴Page Not Found👻" });
+    return res.status(404).json({error:404, message: "🌴Resource Not Found, Check url👻" });
 });
 //alternative to above.....
 //import the HttpError class model we made and use it below

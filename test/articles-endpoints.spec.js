@@ -201,6 +201,91 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
 
 
+
+    //========================= PATCH /articles/:aritcleId ===============================================
+    describe.only('----------------------------------"PATCH /articles/:aritcleId"------------------------------', () => {
+        context('Given NO articles', () => {
+
+            it('responds with 404', () => {
+                const articleId = 1;//nonexistent id
+                const updatedFields = {
+                    title: 'UPDATED TITLE',
+                    style: 'Interview'
+                };
+                return supertest(app)
+                    .patch(`/api/articles/${articleId}`)
+                    .send(updatedFields)
+                    .expect(404, {
+                        error: {code: 404, message: `Article does not exist! Whoops. Check the id.`}
+                    })
+            });//end of it
+
+        });//end of context: no data
+
+
+
+        context('Given WITH articles', () => {
+            //------TEST SETUP----------------------------
+            //create some test articles to insert
+            const testArticles = makeArticlesArray();
+            //"within this context scope", before each test in here, insert some test articles.
+            beforeEach('insert articles', () => {
+                return db
+                    .into('blogful_articles')
+                    .insert(testArticles)
+                    // .returning('*')
+                    // .then(articles => console.log(articles)); //<--only if we want to see that the data was inserted. commented out for now.
+            });
+        //----------TESTS BEGIN------------------------
+            
+            it('responds with 204 and updates the article with only valid fields provided, ignoring invalid fields.', () => {
+                const articleId = 3;
+                const updatedFields = {
+                    title: 'UPDATED TITLE',
+                    style: 'Interview',
+                    potatoe: 'obviously invalid fields should be ignored.'
+                };
+
+                const validFields = {
+                    title: 'UPDATED TITLE',
+                    style: 'Interview'
+                };
+                return supertest(app)
+                    .patch(`/api/articles/${articleId}`)
+                    .send(updatedFields)
+                    .expect(204)
+                    .then(() => {
+                        const expectedArticle = {...testArticles[articleId-1], ...validFields};
+                        return supertest(app)
+                            .get(`/api/articles/${articleId}`)
+                            .expect(200, expectedArticle)
+                    })
+            });//end of it
+
+
+            it('responds with 404 when no required fields are provided', () => {
+                const articleId = 3;
+                const updatedFields = {
+                    description: 'somthing or other testing testing.',
+                    dumbField: 'pointless'
+                };
+
+                //now call the api
+                return supertest(app)
+                    .patch(`/api/articles/${articleId}`)
+                    .send(updatedFields)
+                    .expect(400, {
+                        error: {code: 400, message: `In order to update this item, make sure your fields are one of [title, content, sytle]`}
+                    })
+
+            });//end of it
+
+        });//end of context: with data
+
+    });//-------------------end of PATCH-----------------
+
+
+
     //========================= DELETE /articles/:articleId ===============================================
     describe('----------------------------------"DELETE /articles/:articleId"------------------------------', () => {
 

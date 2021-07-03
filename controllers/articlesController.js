@@ -115,10 +115,64 @@ const insertArticle = (req, res, next) => {
 
 
 
+//-----------------PATCH an existing article by id-----------------------------------------
+const patchArticleById = (req, res, next) => {
+    console.log('Updating article...');
+    const knexInstance = req.app.get('db');
+
+
+    //Check if the article exists first...
+    ArticlesService.getArticleById(knexInstance, req.params.articleId)
+        .then(article => {
+            console.log(article);
+            if(!article) {
+                return res.status(404).json({
+                    error: {code: 404, message: `Article does not exist! Whoops. Check the id.`}
+                });
+            }
+
+            //Ok, we made it this far so the item does indeed exist, lets update now...
+            //make new object out of all valid fields in updateableFields
+            const updateableFields = ["title", "content", "style"];
+            const newBody = {};
+            updateableFields.forEach(field => {
+                if (field in req.body) {
+                    newBody[field] = req.body[field];
+                };
+            });
+
+            //If newbody's length is 0, return 404 'Make sure your fields are one of [title, content, sytle]
+            console.log(Object.keys(newBody).length);
+            if(Object.keys(newBody).length === 0) {
+                return res.status(400).json({
+                    error: {code: 400, message: `In order to update this item, make sure your fields are one of [title, content, sytle]`}
+                })
+            }
+            
+            ArticlesService.updateArticleById(knexInstance, req.params.articleId, newBody)
+                .then(response => {
+
+                    ArticlesService.getArticleById(knexInstance, req.params.articleId)
+                        .then(article => console.log(article))
+                        .then(response => res.status(204).end());
+                    // return res.status(204).end();
+                })
+                .catch(next);
+
+
+        })
+        .catch(next);
+
+
+};
+//--------------------------------END of PATCH /places/:id-----------------------------------//
+
+
 
 //-----------------PATCH an existing place using id-----------------------------------------
 const patchPlaceById = (req, res, next) => {
-    console.log('Updating place...');
+    console.log('Updating article...');
+    const knexInstance = req.app.get('db');
 
     //make new object out of all valid fields in updateableFields
     const updateableFields = ["title", "description", "image"];
@@ -204,9 +258,10 @@ const deleteArticleById = (req, res, next) => {
 module.exports = {
     getAllArticles,
     getArticleById,
+    insertArticle,
+    patchArticleById,
     deleteArticleById,
     getPlacesByCreatorId,
-    insertArticle,
     patchPlaceById,
 };
 // exports.getPlaceById = getPlaceById;

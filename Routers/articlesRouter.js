@@ -4,7 +4,8 @@ const router = express.Router();
 
 const articleControllers = require('../controllers/articlesController');
 
-// const knexInstance = req.app.get('db');
+
+
 
 //---------------------Routes----------------------------------------//
 
@@ -25,8 +26,8 @@ router.get('/:articleId', articleControllers.getArticleById);
 //POST a new article
 router.post('/',  articleControllers.insertArticle);
 
-// //PATCH an existing place by id
-// router.patch('/:id', placeControllers.patchPlaceById);
+//PATCH an existing place by id
+router.patch('/:articleId', articleControllers.patchArticleById);
 
 router.delete('/:articleId', articleControllers.deleteArticleById); //NOTE: <===============CREATE A NEW CONTROLLER FUNCTION FOR THIS!!!!
 
