@@ -11,6 +11,8 @@ const { NODE_ENV } = require('./config');
 
 //import Routers
 const articlesRouter = require('./Routers/articlesRouter');
+const usersRouter = require('./Routers/usersRouter');
+const commentsRouter = require('./Routers/commentsRouter');
 
 //create express app
 const app = express();
@@ -35,6 +37,8 @@ app.use((req, res, next) => {
 
 //apply Router middleware for base paths
 app.use('/api/articles', articlesRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/comments', commentsRouter);
 
 //xss example
 // app.get('/xss', (req, res) => {

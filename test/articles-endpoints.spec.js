@@ -4,6 +4,7 @@ const supertest = require('supertest');
 const { TEST_DB_URL } = require('../config');//using this approach since it utilizes the config.js file
 const app = require('../server');
 const { makeArticlesArray } = require('./articles.fixtures');
+const { makeUsersArray } = require('./users.fixtures');
 
 //----Test Suite
 describe.only('-----Articles Endpoints test suite------', function() {
@@ -26,9 +27,11 @@ describe.only('-----Articles Endpoints test suite------', function() {
     after('disconnect from db', () => db.destroy()); //<--after all the tests, disconnect from test db
 
     //before any testing begins, lets make sure we are starting clean.
-    before('clean the table of all data before any testing begins', () => db('blogful_articles').truncate());
+    // before('clean the table of all data before any testing begins', () => db('blogful_articles').truncate());
+    before('clean the table of all data before any testing begins', () => db.raw('TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE'));
 
-    afterEach('clear the table after each top level describe.', () => db('blogful_articles').truncate());
+    // afterEach('clear the table after each top level describe.', () => db('blogful_articles').truncate());
+    afterEach('clear the table after each top level describe.', () => db.raw('TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE')); //using .raw to inject raw SQL statements.
 
 
 //--------------------------TESTS BELOW----------------------------------------------------------
@@ -47,16 +50,23 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
         context('(Given there ARE articles in the database)', () => {
             //-------TEST SETUP------------
-            //create some test articles to insert
+            //create some test users and test articles to insert
+            const testUsers = makeUsersArray();
             const testArticles = makeArticlesArray();
 
             //"within this context scope", before each test in here, insert some test articles.
-            beforeEach('insert articles', () => {
+            beforeEach('insert users then articles', () => {
                 return db
-                    .into('blogful_articles')
-                    .insert(testArticles)
-                    // .returning('*')
-                    // .then(articles => console.log(articles)); <--only if we want to see that the data was inserted. commented out for now.
+                    .into('blogful_users')
+                    .insert(testUsers)
+                    .then(() => {
+                        return db
+                            .into('blogful_articles')
+                            .insert(testArticles)
+                            // .returning('*')
+                            // .then(articles => console.log(articles)); <--only if we want to see that the data was inserted. commented out for now.
+                    })
+                    
             });
        //----------TEST BEGIN------------------------
             it('returns ALL articles & 200', () => {
@@ -95,15 +105,21 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
         context('(Given there ARE articles in the database)', () => {
         //------TEST SETUP----------------------------
-            //create some test articles to insert
+            //create some test users and articles to insert
+            const testUsers = makeUsersArray();
             const testArticles = makeArticlesArray();
             //"within this context scope", before each test in here, insert some test articles.
             beforeEach('insert articles', () => {
                 return db
-                    .into('blogful_articles')
-                    .insert(testArticles)
-                    // .returning('*')
-                    // .then(articles => console.log(articles)); <--only if we want to see that the data was inserted. commented out for now.
+                    .into('blogful_users')
+                    .insert(testUsers)
+                    .then(() => {
+                        return db
+                            .into('blogful_articles')
+                            .insert(testArticles)
+                            // .returning('*')
+                            // .then(articles => console.log(articles)); <--only if we want to see that the data was inserted. commented out for now.
+                    });
             });
         //----------TESTS BEGIN------------------------
             it('returns specified article & 200', () => {
@@ -152,9 +168,22 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
     //========================= POST /articles ===============================================
     describe('----------------------------------"POST /articles"------------------------------', () => {
+
+        //------TEST SETUP----------------------------
+            //create some test users to insert. We only need users to exist since we are going to post an article.
+            const testUsers = makeUsersArray();
+            
+            //"within this context scope", before each test in here, insert some test users.
+            beforeEach('insert users', () => {
+                return db
+                    .into('blogful_users')
+                    .insert(testUsers)
+            });
+        //----------TESTS BEGIN------------------------
+
         it('returns a 201 & the newly created article', function() {
             this.retries(3);//had to turn the arrow function into an expression in order to make "this" point to the it-block to use this.retries(). We use this to make it retry a specified number of times in a row. We did this since the date might be off on the tested object making this it-block fail.
-            const newArticle = {title: 'New Article', content: 'This is my new article. Check it out and let me know what you think.', style: 'Story'};
+            const newArticle = {title: 'New Article', content: 'This is my new article. Check it out and let me know what you think.', style: 'Story', author: 1};
             return supertest(app)
                 .post('/api/articles')
                 .send(newArticle)
@@ -165,6 +194,7 @@ describe.only('-----Articles Endpoints test suite------', function() {
                     expect(res.body.title).to.eql(newArticle.title);
                     expect(res.body.style).to.eql(newArticle.style);
                     expect(res.body.content).to.eql(newArticle.content);
+                    expect(res.body.author).to.eql(newArticle.author);
                     expect(res.body).to.have.property('id')
                     expect(res.headers.location).to.eql(`/api/articles/${res.body.id}`)
 
@@ -177,7 +207,11 @@ describe.only('-----Articles Endpoints test suite------', function() {
                     supertest(app)
                         .get(`/api/articles/${postRes.body.id}`)
                         .expect(postRes.body)
-                    );
+                )
+                .catch(err => {
+                    console.log(err);
+                    return err;
+                })
 
         });//end of it
 
@@ -203,7 +237,7 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
 
     //========================= PATCH /articles/:aritcleId ===============================================
-    describe.only('----------------------------------"PATCH /articles/:aritcleId"------------------------------', () => {
+    describe('----------------------------------"PATCH /articles/:articleId"------------------------------', () => {
         context('Given NO articles', () => {
 
             it('responds with 404', () => {
@@ -226,15 +260,21 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
         context('Given WITH articles', () => {
             //------TEST SETUP----------------------------
-            //create some test articles to insert
+            //create some test users and test articles to insert
+            const testUsers = makeUsersArray();
             const testArticles = makeArticlesArray();
             //"within this context scope", before each test in here, insert some test articles.
             beforeEach('insert articles', () => {
                 return db
-                    .into('blogful_articles')
-                    .insert(testArticles)
-                    // .returning('*')
-                    // .then(articles => console.log(articles)); //<--only if we want to see that the data was inserted. commented out for now.
+                    .into('blogful_users')
+                    .insert(testUsers)
+                    .then(() => {
+                        return db
+                            .into('blogful_articles')
+                            .insert(testArticles)
+                            // .returning('*')
+                            // .then(articles => console.log(articles)); <--only if we want to see that the data was inserted. commented out for now.
+                    });
             });
         //----------TESTS BEGIN------------------------
             
@@ -243,7 +283,7 @@ describe.only('-----Articles Endpoints test suite------', function() {
                 const updatedFields = {
                     title: 'UPDATED TITLE',
                     style: 'Interview',
-                    potatoe: 'obviously invalid fields should be ignored.'
+                    potatoe: 'obviously invalid field. Should be ignored.'
                 };
 
                 const validFields = {
@@ -307,16 +347,22 @@ describe.only('-----Articles Endpoints test suite------', function() {
 
         context('(Given there ARE articles in the database)', () => {
             //-------TEST SETUP------------
-            //create some test articles to insert
+            //create some test users and articles to insert
+            const testUsers = makeUsersArray();
             const testArticles = makeArticlesArray();
 
             //insert the test articles.
             beforeEach('insert articles', () => {
                 return db
-                    .into('blogful_articles')
-                    .insert(testArticles)
-                    // .returning('*')
-                    // .then(articles => console.log(articles)); //<--only if we want to see that the data was inserted. commented out for now.
+                    .into('blogful_users')
+                    .insert(testUsers)
+                    .then(() => {
+                        return db
+                            .into('blogful_articles')
+                            .insert(testArticles)
+                            // .returning('*')
+                            // .then(articles => console.log(articles)); <--only if we want to see that the data was inserted. commented out for now.
+                    });
             });
        //----------TEST BEGIN------------------------
 

@@ -34,6 +34,7 @@ const getArticleById = (req, res, next) => {
                 style: article.style, 
                 title : xss(article.title), 
                 content : xss(article.content),
+                author: article.author,
                 date_published: article.date_published
             };
 
@@ -83,8 +84,7 @@ const insertArticle = (req, res, next) => {
     */
 
     //Make sure all required fields exist in req.body
-    // const requiredFields = ["title", "description", "address", "creator"];
-    const requiredFields = ["title", "content", "style"];
+    const requiredFields = ["title", "content", "style"]; //"author" is not absolutley necessary I guess. not sure why thinkful did that."
     const missingFields = [];
     requiredFields.forEach(field => {
         if (!req.body[field]) {
@@ -98,17 +98,18 @@ const insertArticle = (req, res, next) => {
     }
 
 
-    const { title, content, style, date_published } = req.body;
+    const { title, content, style, author, date_published } = req.body;
 
-    const newArticle = { title, content, style, date_published };
+    const newArticle = { title, content, style, author, date_published };
 
     ArticlesService.insertArticle(knexInstance, newArticle)
         .then(art => {
             return res.status(201).location(`/api/articles/${art.id}`).json(art);
         })
         .catch(err => {
-            const error = new HttpError(`Failed Creating article: ${err}`, 500);
-            return next(error)
+            // const error = new HttpError(`Failed Creating article: ${err}`, 500);
+            // return next(error)
+            next(err);
         });
 };
 //--------------------------------END of POST /articles-----------------------------------//
@@ -124,7 +125,6 @@ const patchArticleById = (req, res, next) => {
     //Check if the article exists first...
     ArticlesService.getArticleById(knexInstance, req.params.articleId)
         .then(article => {
-            console.log(article);
             if(!article) {
                 return res.status(404).json({
                     error: {code: 404, message: `Article does not exist! Whoops. Check the id.`}
@@ -142,7 +142,7 @@ const patchArticleById = (req, res, next) => {
             });
 
             //If newbody's length is 0, return 404 'Make sure your fields are one of [title, content, sytle]
-            console.log(Object.keys(newBody).length);
+            // console.log(Object.keys(newBody).length);
             if(Object.keys(newBody).length === 0) {
                 return res.status(400).json({
                     error: {code: 400, message: `In order to update this item, make sure your fields are one of [title, content, sytle]`}
@@ -153,7 +153,7 @@ const patchArticleById = (req, res, next) => {
                 .then(response => {
 
                     ArticlesService.getArticleById(knexInstance, req.params.articleId)
-                        .then(article => console.log(article))
+                        // .then(article => console.log(article))
                         .then(response => res.status(204).end());
                     // return res.status(204).end();
                 })
@@ -165,7 +165,7 @@ const patchArticleById = (req, res, next) => {
 
 
 };
-//--------------------------------END of PATCH /places/:id-----------------------------------//
+//--------------------------------END of PATCH /article/:id-----------------------------------//
 
 
 
