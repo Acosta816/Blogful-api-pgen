@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const knex = require('knex');
 const supertest = require('supertest');
-const { TEST_DB_URL } = require('../config');//using this approach since it utilizes the config.js file
+const { TEST_DATABASE_URL } = require('../config');//using this approach since it utilizes the config.js file
 const app = require('../server');
 const { makeArticlesArray } = require('./articles.fixtures');
 const { makeUsersArray } = require('./users.fixtures');
@@ -11,11 +11,11 @@ describe.only('-----Articles Endpoints test suite------', function() {
 //--------SET UP TESTING ENVIRONMENT---------------------------------------------
     let db;//create now and assign it's value later
 
-    before('initiate "knex" instance that connects to TEST_DB_URL', () => {
+    before('initiate "knex" instance that connects to TEST_DATABASE_URL', () => {
         //initiate knex instance that connects to test db
         db = knex({
             client: 'pg',
-            connection: TEST_DB_URL
+            connection: TEST_DATABASE_URL
         });
 
         //using express's "set" method, set a property called 'db' (which is our knex instance) on the express app
